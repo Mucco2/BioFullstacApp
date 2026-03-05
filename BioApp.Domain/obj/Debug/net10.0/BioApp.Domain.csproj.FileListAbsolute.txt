@@ -1,0 +1,11 @@
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\bin\Debug\net10.0\BioApp.Domain.deps.json
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\bin\Debug\net10.0\BioApp.Domain.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\bin\Debug\net10.0\BioApp.Domain.pdb
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\BioApp.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\BioApp.Domain.AssemblyInfoInputs.cache
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\BioApp.Domain.AssemblyInfo.cs
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\BioApp.Domain.csproj.CoreCompileInputs.cache
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\BioApp.Domain.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\refint\BioApp.Domain.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\BioApp.Domain.pdb
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\ref\BioApp.Domain.dll

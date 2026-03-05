@@ -1,0 +1,17 @@
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\bin\Debug\net10.0\BioApp.Infrastructure.deps.json
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\bin\Debug\net10.0\BioApp.Infrastructure.runtimeconfig.json
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\bin\Debug\net10.0\BioApp.Infrastructure.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\bin\Debug\net10.0\BioApp.Infrastructure.pdb
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\bin\Debug\net10.0\BioApp.Domain.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\bin\Debug\net10.0\BioApp.Domain.pdb
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.AssemblyInfo.cs
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.I.0058DE6B.Up2Date
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\refint\BioApp.Infrastructure.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.pdb
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.genruntimeconfig.cache
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\ref\BioApp.Infrastructure.dll
