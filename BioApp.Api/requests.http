@@ -2,6 +2,14 @@
 @api = {{host}}/api
 
 ############################################################
+# TIP: KØR I DENNE RÆKKEFØLGE (pga. Foreign Keys)
+# 1) Movies -> 2) Auditoriums -> 3) Seats -> 4) ShowFormats (GET)
+# 5) Screenings -> 6) Users -> 7) Bookings -> 8) BookingSeats
+# 9) Products -> 10) BookingItems
+############################################################
+
+
+############################################################
 # MOVIES
 ############################################################
 
@@ -16,7 +24,7 @@ POST {{api}}/movies
 Content-Type: application/json
 
 {
-  "title": "StartWars: A New Hope",
+  "title": "Star Wars: A New Hope",
   "description": "Sci-fi classic",
   "durationMinutes": 160,
   "ageLimit": 11,
@@ -25,7 +33,8 @@ Content-Type: application/json
 
 ###
 
-@movieId = 3
+# Sæt denne efter du har set id i POST respons eller i Get all
+@movieId = 1
 
 ### Movies - Get by id
 GET {{api}}/movies/{{movieId}}
@@ -39,7 +48,7 @@ Content-Type: application/json
 
 {
   "id": {{movieId}},
-  "title": "Star Wars: First Jedi",
+  "title": "Star Wars: A New Hope (Remastered)",
   "description": "Sci-fi epic",
   "durationMinutes": 200,
   "ageLimit": 11,
@@ -51,69 +60,6 @@ Content-Type: application/json
 ### Movies - Delete
 DELETE {{api}}/movies/{{movieId}}
 
-############################################################
-# PRODUCTS (Food/Drink)
-############################################################
-
-### Products - Get all
-GET {{api}}/products
-Accept: application/json
-
-###
-
-### Products - Create
-POST {{api}}/products
-Content-Type: application/json
-
-{
-  "name": "Cola",
-  "category": "Drink",
-  "price": 35.00,
-  "isActive": true
-}
-
-###
-
-@productId = 1
-
-### Products - Get by id
-GET {{api}}/products/{{productId}}
-Accept: application/json
-
-###
-
-### Products - Update
-PUT {{api}}/products/{{productId}}
-Content-Type: application/json
-
-{
-  "id": {{productId}},
-  "name": "Cola Zero",
-  "category": "Drink",
-  "price": 35.00,
-  "isActive": true
-}
-
-###
-
-### Products - Delete
-DELETE {{api}}/products/{{productId}}
-
-############################################################
-# SHOWFORMATS (2D/3D) - read-only typisk
-############################################################
-
-### ShowFormats - Get all
-GET {{api}}/showformats
-Accept: application/json
-
-###
-
-@showFormatId = 1
-
-### ShowFormats - Get by id
-GET {{api}}/showformats/{{showFormatId}}
-Accept: application/json
 
 ############################################################
 # AUDITORIUMS (sale)
@@ -160,6 +106,7 @@ Content-Type: application/json
 
 ### Auditoriums - Delete
 DELETE {{api}}/auditoriums/{{auditoriumId}}
+
 
 ############################################################
 # SEATS
@@ -208,6 +155,24 @@ Content-Type: application/json
 
 ### Seats - Delete
 DELETE {{api}}/seats/{{seatId}}
+
+
+############################################################
+# SHOWFORMATS (2D/3D) - seedet af EF (Id 1 og 2)
+############################################################
+
+### ShowFormats - Get all
+GET {{api}}/showformats
+Accept: application/json
+
+###
+
+@showFormatId = 1
+
+### ShowFormats - Get by id
+GET {{api}}/showformats/{{showFormatId}}
+Accept: application/json
+
 
 ############################################################
 # SCREENINGS (forestillinger)
@@ -260,8 +225,10 @@ Content-Type: application/json
 ### Screenings - Delete
 DELETE {{api}}/screenings/{{screeningId}}
 
+
 ############################################################
 # EXTRA GET #1 (underviser-krav): Screenings by movie + date
+# GET /api/screenings/by-movie-date?movieId=1&date=2026-03-05
 ############################################################
 
 @date = 2026-03-05
@@ -269,6 +236,60 @@ DELETE {{api}}/screenings/{{screeningId}}
 ### Screenings - by movie and date
 GET {{api}}/screenings/by-movie-date?movieId={{movieId}}&date={{date}}
 Accept: application/json
+
+
+############################################################
+# USERS (simpel CRUD - senere login/JWT)
+############################################################
+
+### Users - Get all
+GET {{api}}/users
+Accept: application/json
+
+###
+
+### Users - Create
+# OBS: PasswordHash og PasswordSalt er varbinary i DB.
+# Til simpelt CRUD-test bruger vi base64-strings her.
+POST {{api}}/users
+Content-Type: application/json
+
+{
+  "email": "mucco@example.com",
+  "username": "Mucco",
+  "passwordHash": "AQIDBAUGBwgJCgsMDQ4PEA==",
+  "passwordSalt": "AAECAwQFBgcICQoLDA0ODw==",
+  "isActive": true
+}
+
+###
+
+@userId = 1
+
+### Users - Get by id
+GET {{api}}/users/{{userId}}
+Accept: application/json
+
+###
+
+### Users - Update
+PUT {{api}}/users/{{userId}}
+Content-Type: application/json
+
+{
+  "id": {{userId}},
+  "email": "mucco@example.com",
+  "username": "MuccoUpdated",
+  "passwordHash": "AQIDBAUGBwgJCgsMDQ4PEA==",
+  "passwordSalt": "AAECAwQFBgcICQoLDA0ODw==",
+  "isActive": true
+}
+
+###
+
+### Users - Delete
+DELETE {{api}}/users/{{userId}}
+
 
 ############################################################
 # BOOKINGS
@@ -281,8 +302,6 @@ Accept: application/json
 ###
 
 ### Bookings - Create (kræver userId + screeningId findes)
-@userId = 1
-
 POST {{api}}/bookings
 Content-Type: application/json
 
@@ -320,9 +339,16 @@ Content-Type: application/json
 ### Bookings - Delete
 DELETE {{api}}/bookings/{{bookingId}}
 
+
 ############################################################
-# BOOKING SEATS (join table)
+# BOOKING SEATS (join table - composite key)
 ############################################################
+
+### BookingSeats - Get all
+GET {{api}}/bookingseats
+Accept: application/json
+
+###
 
 ### BookingSeats - Add seat to booking
 POST {{api}}/bookingseats
@@ -336,20 +362,84 @@ Content-Type: application/json
 
 ###
 
+### BookingSeats - Get by composite key (bookingId + seatId)
+GET {{api}}/bookingseats/by-key?bookingId={{bookingId}}&seatId={{seatId}}
+Accept: application/json
+
+###
+
 ### BookingSeats - Remove seat from booking (composite key)
 DELETE {{api}}/bookingseats?bookingId={{bookingId}}&seatId={{seatId}}
 
+
 ############################################################
 # EXTRA GET #2 (underviser-krav): Available seats for screening
+# GET /api/screenings/{id}/available-seats
 ############################################################
 
 ### Screenings - available seats
 GET {{api}}/screenings/{{screeningId}}/available-seats
 Accept: application/json
 
+
+############################################################
+# PRODUCTS (Food/Drink)
+############################################################
+
+### Products - Get all
+GET {{api}}/products
+Accept: application/json
+
+###
+
+### Products - Create
+POST {{api}}/products
+Content-Type: application/json
+
+{
+  "name": "Cola",
+  "category": "Drink",
+  "price": 35.00,
+  "isActive": true
+}
+
+###
+
+@productId = 1
+
+### Products - Get by id
+GET {{api}}/products/{{productId}}
+Accept: application/json
+
+###
+
+### Products - Update
+PUT {{api}}/products/{{productId}}
+Content-Type: application/json
+
+{
+  "id": {{productId}},
+  "name": "Cola Zero",
+  "category": "Drink",
+  "price": 35.00,
+  "isActive": true
+}
+
+###
+
+### Products - Delete
+DELETE {{api}}/products/{{productId}}
+
+
 ############################################################
 # BOOKING ITEMS (mad/drikke på booking)
 ############################################################
+
+### BookingItems - Get all
+GET {{api}}/bookingitems
+Accept: application/json
+
+###
 
 ### BookingItems - Add product to booking
 POST {{api}}/bookingitems

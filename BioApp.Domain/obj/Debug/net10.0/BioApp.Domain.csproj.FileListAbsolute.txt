@@ -9,3 +9,4 @@ C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\B
 C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\refint\BioApp.Domain.dll
 C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\BioApp.Domain.pdb
 C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\ref\BioApp.Domain.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Domain\obj\Debug\net10.0\BioApp.Domain.sourcelink.json

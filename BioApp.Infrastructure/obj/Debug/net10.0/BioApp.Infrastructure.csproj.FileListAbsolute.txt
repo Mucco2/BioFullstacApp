@@ -15,3 +15,4 @@ C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\n
 C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.pdb
 C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.genruntimeconfig.cache
 C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\ref\BioApp.Infrastructure.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Infrastructure\obj\Debug\net10.0\BioApp.Infrastructure.sourcelink.json

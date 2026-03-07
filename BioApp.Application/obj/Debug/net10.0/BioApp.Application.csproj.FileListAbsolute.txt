@@ -13,3 +13,4 @@ C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Application\obj\Debug\net1
 C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Application\obj\Debug\net10.0\refint\BioApp.Application.dll
 C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Application\obj\Debug\net10.0\BioApp.Application.pdb
 C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Application\obj\Debug\net10.0\ref\BioApp.Application.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Application\obj\Debug\net10.0\BioApp.Application.sourcelink.json
