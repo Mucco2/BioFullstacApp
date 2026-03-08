@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BioApp.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4e5cfbf9c83f8ad64db044a409e6a23cd1588803")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a121af6a5ff01e2659b8ad080966f893ecbd001f")]
 [assembly: System.Reflection.AssemblyProductAttribute("BioApp.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BioApp.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
