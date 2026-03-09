@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BioApp.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a121af6a5ff01e2659b8ad080966f893ecbd001f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c14cdae7c536af42fca8968669ab838fb1adf240")]
 [assembly: System.Reflection.AssemblyProductAttribute("BioApp.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BioApp.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

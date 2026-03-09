@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "XhOmdgKwYXk=",
+  "dgSpecHash": "a0P+/M0/M3Q=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Mucco\\OneDrive\\Desktop\\BioFullstacApp\\BioApp.Infrastructure\\BioApp.Infrastructure.csproj",
+  "projectFilePath": "C:\\Users\\Mucco\\OneDrive\\Documents\\GitHub\\BioFullstacApp\\BioApp.Infrastructure\\BioApp.Infrastructure.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Mucco\\.nuget\\packages\\azure.core\\1.47.1\\azure.core.1.47.1.nupkg.sha512",
     "C:\\Users\\Mucco\\.nuget\\packages\\azure.identity\\1.14.2\\azure.identity.1.14.2.nupkg.sha512",
