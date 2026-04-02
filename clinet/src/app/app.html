@@ -1,0 +1,477 @@
+<div class="page">
+  <header class="hero">
+    <div>
+      <p class="kicker">BioApp</p>
+      <h1>Booking og Admin panel</h1>
+      <p class="subtitle">Skift mellem kunde‑flow og admin‑styring.</p>
+    </div>
+    <div class="hero-meta">
+      <div class="chip">API: {{ apiBase }}</div>
+      <div class="chip">Frontend: http://localhost:4200</div>
+    </div>
+  </header>
+
+  <div class="view-toggle">
+    <button type="button" [class.active]="viewMode === 'booking'" (click)="setViewMode('booking')">
+      Booking
+    </button>
+    <button type="button" [class.active]="viewMode === 'admin'" (click)="setViewMode('admin')">
+      Admin
+    </button>
+  </div>
+
+  <div class="status" [class.ok]="statusType === 'ok'" [class.error]="statusType === 'error'">
+    {{ statusMessage }}
+  </div>
+
+  <section *ngIf="viewMode === 'booking'">
+    <nav class="stepper">
+      <button
+        class="step"
+        *ngFor="let item of steps"
+        type="button"
+        [class.active]="step === item.id"
+        [class.done]="step > item.id"
+        [class.disabled]="!canGoToStep(item.id)"
+        (click)="goToStep(item.id)"
+      >
+        <span class="step-id">{{ item.id }}</span>
+        {{ item.label }}
+      </button>
+    </nav>
+
+    <section class="panel">
+      <ng-container [ngSwitch]="step">
+        <div *ngSwitchCase="1" class="step-body">
+          <h2>Vælg format</h2>
+          <p class="muted">2D eller 3D bestemmer prisen.</p>
+          <div class="card-grid" *ngIf="showFormats.length; else noFormats">
+            <button
+              type="button"
+              class="option-card"
+              *ngFor="let format of showFormats"
+              (click)="selectFormat(format.id)"
+            >
+              <h3>{{ format.name }}</h3>
+              <p>Ekstra pris: {{ format.priceAdd | number:'1.0-2' }} DKK</p>
+            </button>
+          </div>
+          <ng-template #noFormats>
+            <p class="muted">Ingen formater endnu.</p>
+          </ng-template>
+        </div>
+
+        <div *ngSwitchCase="2" class="step-body">
+          <h2>Vælg film</h2>
+          <p class="muted">Kun film der findes i valgt format.</p>
+          <div class="card-grid" *ngIf="filteredMovies.length; else noMovies">
+            <button
+              type="button"
+              class="option-card"
+              *ngFor="let movie of filteredMovies"
+              (click)="selectMovie(movie.id)"
+            >
+              <h3>{{ movie.title }}</h3>
+              <p>{{ movie.durationMinutes }} min · {{ movie.ageLimit || 'fri' }} år</p>
+            </button>
+          </div>
+          <ng-template #noMovies>
+            <p class="muted">Ingen film i dette format endnu.</p>
+          </ng-template>
+        </div>
+
+        <div *ngSwitchCase="3" class="step-body">
+          <h2>Vælg tid</h2>
+          <p class="muted">Vælg en tidspunkt for din film.</p>
+          <div class="list" *ngIf="filteredScreenings.length; else noTimes">
+            <button
+              type="button"
+              class="option-row"
+              *ngFor="let screening of filteredScreenings"
+              (click)="selectScreening(screening.id)"
+            >
+              <div>
+                <div class="list-title">{{ screening.startsAt | date:'medium' }}</div>
+                <div class="list-sub">Screening #{{ screening.id }} · Sal {{ screening.auditoriumId }}</div>
+              </div>
+              <div class="price">{{ (screening.baseTicketPrice + (selectedFormat?.priceAdd || 0)) | number:'1.0-2' }} DKK</div>
+            </button>
+          </div>
+          <ng-template #noTimes>
+            <p class="muted">Ingen tider fundet endnu.</p>
+          </ng-template>
+        </div>
+
+        <div *ngSwitchCase="4" class="step-body">
+          <h2>Vælg pladser</h2>
+          <p class="muted">Vælg mindst én ledig plads.</p>
+          <div *ngIf="seatRows.length; else noSeats">
+            <div class="seat-map">
+              <div class="seat-row" *ngFor="let row of seatRows">
+                <div class="row-label">Række {{ row }}</div>
+                <div class="row-seats">
+                  <button
+                    type="button"
+                    class="seat-btn"
+                    *ngFor="let seat of seatsByRow[row]"
+                    [class.selected]="isSeatSelected(seat.id)"
+                    (click)="toggleSeat(seat.id)"
+                  >
+                    {{ seat.seatNumber }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="seat-summary">
+              Valgte sæder: {{ seatCount }} · Billetpris pr. stk: {{ ticketPrice | number:'1.0-2' }} DKK
+            </div>
+          </div>
+          <ng-template #noSeats>
+            <p class="muted">Ingen ledige sæder endnu.</p>
+          </ng-template>
+        </div>
+
+        <div *ngSwitchCase="5" class="step-body">
+          <h2>Mad og drikke</h2>
+          <p class="muted">Vælg snacks (valgfrit).</p>
+          <div class="list" *ngIf="products.length; else noProducts">
+            <div class="product-row" *ngFor="let product of products">
+              <div>
+                <div class="list-title">{{ product.name }}</div>
+                <div class="list-sub">{{ product.category }} · {{ product.price | number:'1.0-2' }} DKK</div>
+              </div>
+              <input
+                type="number"
+                min="0"
+                name="qty-{{ product.id }}"
+                [(ngModel)]="productQuantities[product.id]"
+              />
+            </div>
+          </div>
+          <ng-template #noProducts>
+            <p class="muted">Ingen produkter endnu.</p>
+          </ng-template>
+        </div>
+
+        <div *ngSwitchCase="6" class="step-body">
+          <h2>Opsummering</h2>
+          <div class="summary">
+            <div>
+              <h3>Din booking</h3>
+              <p><strong>Format:</strong> {{ selectedFormat?.name }}</p>
+              <p><strong>Film:</strong> {{ selectedMovie?.title }}</p>
+              <p><strong>Tid:</strong> {{ selectedScreening?.startsAt | date:'medium' }}</p>
+              <p><strong>Sæder:</strong> {{ seatCount }} stk</p>
+            </div>
+            <div>
+              <h3>Pris</h3>
+              <p>Billetter: {{ ticketTotal | number:'1.0-2' }} DKK</p>
+              <p>Snacks: {{ itemsTotal | number:'1.0-2' }} DKK</p>
+              <p class="total">Total: {{ grandTotal | number:'1.0-2' }} DKK</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Vælg bruger</h3>
+            <select name="selectedUser" [(ngModel)]="selectedUserId">
+              <option [ngValue]="null">Vælg bruger</option>
+              <option *ngFor="let user of users" [ngValue]="user.id">
+                {{ user.username }} ({{ user.email }})
+              </option>
+            </select>
+
+            <div class="inline-muted">Ingen bruger? Opret en ny nedenfor.</div>
+
+            <form class="form" (ngSubmit)="createUserAndSelect()">
+              <label>
+                Email
+                <input name="userEmail" [(ngModel)]="userForm.email" />
+              </label>
+              <label>
+                Brugernavn
+                <input name="userName" [(ngModel)]="userForm.username" />
+              </label>
+              <label>
+                Password Hash (base64)
+                <input name="userHash" [(ngModel)]="userForm.passwordHash" />
+              </label>
+              <label>
+                Password Salt (base64)
+                <input name="userSalt" [(ngModel)]="userForm.passwordSalt" />
+              </label>
+              <label class="check">
+                <input name="userActive" type="checkbox" [(ngModel)]="userForm.isActive" />
+                Aktiv
+              </label>
+              <button type="submit" class="secondary">Opret bruger</button>
+            </form>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="primary" [disabled]="!canConfirmBooking()" (click)="confirmBooking()">
+              Bekræft booking
+            </button>
+          </div>
+
+          <div class="booking-result" *ngIf="bookingResult">
+            <h3>Booking gennemført</h3>
+            <p>Booking #{{ bookingResult.id }} er oprettet.</p>
+          </div>
+        </div>
+      </ng-container>
+    </section>
+
+    <footer class="nav-actions">
+      <button type="button" class="ghost" (click)="prevStep()" [disabled]="step === 1">
+        Tilbage
+      </button>
+      <button type="button" class="primary" (click)="nextStep()" [disabled]="!canProceedFromStep(step) || step === 6">
+        Næste
+      </button>
+    </footer>
+  </section>
+
+  <section *ngIf="viewMode === 'admin'" class="admin">
+    <div class="admin-grid">
+      <div class="admin-card">
+        <div class="card-header">
+          <h2>Format (2D/3D)</h2>
+          <button type="button" (click)="loadInitialData()">Reload</button>
+        </div>
+        <div class="list" *ngIf="showFormats.length; else noFormatsAdmin">
+          <div class="list-row" *ngFor="let format of showFormats">
+            <div>
+              <div class="list-title">{{ format.name }}</div>
+              <div class="list-sub">Ekstra pris: {{ format.priceAdd | number:'1.0-2' }} DKK</div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noFormatsAdmin>
+          <p class="muted">Ingen formater endnu.</p>
+        </ng-template>
+        <form class="form" (ngSubmit)="createShowFormat()">
+          <label>
+            Navn
+            <input name="formatName" [(ngModel)]="showFormatForm.name" />
+          </label>
+          <label>
+            Ekstra pris
+            <input name="formatPrice" type="number" [(ngModel)]="showFormatForm.priceAdd" />
+          </label>
+          <button type="submit" class="primary">Opret format</button>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <div class="card-header">
+          <h2>Film</h2>
+          <button type="button" (click)="loadInitialData()">Reload</button>
+        </div>
+        <div class="list" *ngIf="movies.length; else noMoviesAdmin">
+          <div class="list-row" *ngFor="let movie of movies">
+            <div>
+              <div class="list-title">{{ movie.title }}</div>
+              <div class="list-sub">#{{ movie.id }} · {{ movie.durationMinutes }} min</div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noMoviesAdmin>
+          <p class="muted">Ingen film endnu.</p>
+        </ng-template>
+        <form class="form" (ngSubmit)="createMovie()">
+          <label>
+            Title
+            <input name="movieTitle" [(ngModel)]="movieForm.title" />
+          </label>
+          <label>
+            Description
+            <textarea name="movieDesc" rows="2" [(ngModel)]="movieForm.description"></textarea>
+          </label>
+          <div class="field-row">
+            <label>
+              Duration (min)
+              <input name="movieDuration" type="number" [(ngModel)]="movieForm.durationMinutes" />
+            </label>
+            <label>
+              Age Limit
+              <input name="movieAge" type="number" [(ngModel)]="movieForm.ageLimit" />
+            </label>
+            <label>
+              Release Date
+              <input name="movieRelease" type="date" [(ngModel)]="movieForm.releaseDate" />
+            </label>
+          </div>
+          <button type="submit" class="primary">Opret film</button>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <div class="card-header">
+          <h2>Sale</h2>
+          <button type="button" (click)="loadAuditoriums()">Reload</button>
+        </div>
+        <div class="list" *ngIf="auditoriums.length; else noAuditoriums">
+          <div class="list-row" *ngFor="let auditorium of auditoriums">
+            <div>
+              <div class="list-title">{{ auditorium.name }}</div>
+              <div class="list-sub">Rækker: {{ auditorium.rows }} · Sæder pr. række: {{ auditorium.seatPerRow }}</div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noAuditoriums>
+          <p class="muted">Ingen sale endnu.</p>
+        </ng-template>
+        <form class="form" (ngSubmit)="createAuditorium()">
+          <label>
+            Navn
+            <input name="audName" [(ngModel)]="auditoriumForm.name" />
+          </label>
+          <div class="field-row">
+            <label>
+              Rækker
+              <input name="audRows" type="number" [(ngModel)]="auditoriumForm.rows" />
+            </label>
+            <label>
+              Sæder pr. række
+              <input name="audSeats" type="number" [(ngModel)]="auditoriumForm.seatPerRow" />
+            </label>
+          </div>
+          <button type="submit" class="primary">Opret sal</button>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <div class="card-header">
+          <h2>Sæder</h2>
+          <button type="button" (click)="loadSeats()">Reload</button>
+        </div>
+        <div class="list" *ngIf="seats.length; else noSeatsAdmin">
+          <div class="list-row" *ngFor="let seat of seats | slice:0:8">
+            <div>
+              <div class="list-title">Sal {{ seat.auditoriumId }} · R{{ seat.seatRow }} S{{ seat.seatNumber }}</div>
+              <div class="list-sub">{{ seat.seatType }}</div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noSeatsAdmin>
+          <p class="muted">Ingen sæder endnu.</p>
+        </ng-template>
+        <form class="form" (ngSubmit)="createSeat()">
+          <label>
+            Sal
+            <select name="seatAud" [(ngModel)]="seatForm.auditoriumId">
+              <option [ngValue]="0">Vælg sal</option>
+              <option *ngFor="let auditorium of auditoriums" [ngValue]="auditorium.id">
+                {{ auditorium.name }} (#{{ auditorium.id }})
+              </option>
+            </select>
+          </label>
+          <div class="field-row">
+            <label>
+              Række
+              <input name="seatRow" type="number" [(ngModel)]="seatForm.seatRow" />
+            </label>
+            <label>
+              Nummer
+              <input name="seatNumber" type="number" [(ngModel)]="seatForm.seatNumber" />
+            </label>
+            <label>
+              Type
+              <input name="seatType" [(ngModel)]="seatForm.seatType" />
+            </label>
+          </div>
+          <button type="submit" class="primary">Opret sæde</button>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <div class="card-header">
+          <h2>Forestillinger</h2>
+          <button type="button" (click)="loadInitialData()">Reload</button>
+        </div>
+        <div class="list" *ngIf="screenings.length; else noScreeningsAdmin">
+          <div class="list-row" *ngFor="let screening of screenings | slice:0:6">
+            <div>
+              <div class="list-title">{{ screening.startsAt | date:'medium' }}</div>
+              <div class="list-sub">Film {{ screening.movieId }} · Sal {{ screening.auditoriumId }} · Format {{ screening.showFormatId }}</div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noScreeningsAdmin>
+          <p class="muted">Ingen forestillinger endnu.</p>
+        </ng-template>
+        <form class="form" (ngSubmit)="createScreening()">
+          <label>
+            Film
+            <select name="screenMovie" [(ngModel)]="screeningForm.movieId">
+              <option [ngValue]="0">Vælg film</option>
+              <option *ngFor="let movie of movies" [ngValue]="movie.id">{{ movie.title }}</option>
+            </select>
+          </label>
+          <label>
+            Sal
+            <select name="screenAud" [(ngModel)]="screeningForm.auditoriumId">
+              <option [ngValue]="0">Vælg sal</option>
+              <option *ngFor="let auditorium of auditoriums" [ngValue]="auditorium.id">{{ auditorium.name }}</option>
+            </select>
+          </label>
+          <label>
+            Format
+            <select name="screenFormat" [(ngModel)]="screeningForm.showFormatId">
+              <option [ngValue]="0">Vælg format</option>
+              <option *ngFor="let format of showFormats" [ngValue]="format.id">{{ format.name }}</option>
+            </select>
+          </label>
+          <label>
+            Starttid
+            <input name="screenStart" type="datetime-local" [(ngModel)]="screeningForm.startsAt" />
+          </label>
+          <label>
+            Base Ticket Price
+            <input name="screenPrice" type="number" [(ngModel)]="screeningForm.baseTicketPrice" />
+          </label>
+          <button type="submit" class="primary">Opret forestilling</button>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <div class="card-header">
+          <h2>Mad og drikke</h2>
+          <button type="button" (click)="loadInitialData()">Reload</button>
+        </div>
+        <div class="list" *ngIf="products.length; else noProductsAdmin">
+          <div class="list-row" *ngFor="let product of products">
+            <div>
+              <div class="list-title">{{ product.name }}</div>
+              <div class="list-sub">{{ product.category }} · {{ product.price | number:'1.0-2' }} DKK</div>
+            </div>
+          </div>
+        </div>
+        <ng-template #noProductsAdmin>
+          <p class="muted">Ingen produkter endnu.</p>
+        </ng-template>
+        <form class="form" (ngSubmit)="createProduct()">
+          <label>
+            Navn
+            <input name="prodName" [(ngModel)]="productForm.name" />
+          </label>
+          <label>
+            Kategori
+            <input name="prodCat" [(ngModel)]="productForm.category" />
+          </label>
+          <div class="field-row">
+            <label>
+              Pris
+              <input name="prodPrice" type="number" [(ngModel)]="productForm.price" />
+            </label>
+            <label class="check">
+              <input name="prodActive" type="checkbox" [(ngModel)]="productForm.isActive" />
+              Aktiv
+            </label>
+          </div>
+          <button type="submit" class="primary">Opret produkt</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>

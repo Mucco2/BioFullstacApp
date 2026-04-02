@@ -24,17 +24,17 @@ POST {{api}}/movies
 Content-Type: application/json
 
 {
-  "title": "Star Wars: A New Hope",
-  "description": "Sci-fi classic",
-  "durationMinutes": 160,
-  "ageLimit": 11,
-  "releaseDate": "1977-05-25"
+  "title": "Shelter: part one",
+  "description": "action classic",
+  "durationMinutes": 200,
+  "ageLimit": 16,
+  "releaseDate": "2025-05-25"
 }
 
 ###
 
 # Sæt denne efter du har set id i POST respons eller i Get all
-@movieId = 1
+@movieId = 2
 
 ### Movies - Get by id
 GET {{api}}/movies/{{movieId}}
@@ -50,7 +50,7 @@ Content-Type: application/json
   "id": {{movieId}},
   "title": "Star Wars: A New Hope (Remastered)",
   "description": "Sci-fi epic",
-  "durationMinutes": 200,
+  "durationMinutes": 201,
   "ageLimit": 11,
   "releaseDate": "1977-05-25"
 }
@@ -58,7 +58,7 @@ Content-Type: application/json
 ###
 
 ### Movies - Delete
-DELETE {{api}}/movies/{{movieId}}
+DELETE {{api}}/movies/{{movieId}} 
 
 
 ############################################################
@@ -83,7 +83,7 @@ Content-Type: application/json
 
 ###
 
-@auditoriumId = 1
+@auditoriumId = 2
 
 ### Auditoriums - Get by id
 GET {{api}}/auditoriums/{{auditoriumId}}
@@ -167,7 +167,7 @@ Accept: application/json
 
 ###
 
-@showFormatId = 1
+@showFormatId = 2
 
 ### ShowFormats - Get by id
 GET {{api}}/showformats/{{showFormatId}}
