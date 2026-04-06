@@ -16,7 +16,34 @@ import { API_BASE_URL } from './app.constants';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
+  private readonly tokenKey = 'bioapp_token';
+
   constructor(private http: HttpClient) {}
+
+  setToken(token: string | null) {
+    if (token) {
+      localStorage.setItem(this.tokenKey, token);
+    } else {
+      localStorage.removeItem(this.tokenKey);
+    }
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
+  }
+
+  private authHeaders() {
+    const token = this.getToken();
+    return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  }
+
+  login(payload: { emailOrUsername: string; password: string }) {
+    return this.http.post<{ token: string; user: User }>(`${API_BASE_URL}/auth/login`, payload);
+  }
+
+  register(payload: { email: string; username: string; password: string }) {
+    return this.http.post<{ token: string; user: User }>(`${API_BASE_URL}/auth/register`, payload);
+  }
 
   getMovies() {
     return this.http.get<Movie[]>(`${API_BASE_URL}/movies`);
@@ -107,14 +134,14 @@ export class ApiService {
     status: string;
     notes?: string | null;
   }) {
-    return this.http.post<Booking>(`${API_BASE_URL}/bookings`, payload);
+    return this.http.post<Booking>(`${API_BASE_URL}/bookings`, payload, this.authHeaders());
   }
 
   addBookingSeat(payload: BookingSeat) {
-    return this.http.post<void>(`${API_BASE_URL}/bookingseats`, payload);
+    return this.http.post<void>(`${API_BASE_URL}/bookingseats`, payload, this.authHeaders());
   }
 
   addBookingItem(payload: BookingItem) {
-    return this.http.post<void>(`${API_BASE_URL}/bookingitems`, payload);
+    return this.http.post<void>(`${API_BASE_URL}/bookingitems`, payload, this.authHeaders());
   }
 }

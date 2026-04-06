@@ -1,7 +1,9 @@
 using BioApp.Domain.Entities;
 using BioApp.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace BioApp.Api.Controllers;
 
@@ -24,10 +26,16 @@ public class BookingsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<ActionResult<Booking>> Create(Booking booking)
     {
-        if (!await _db.Users.AnyAsync(u => u.Id == booking.UserId))
-            return BadRequest($"UserId {booking.UserId} does not exist.");
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userIdValue) || !int.TryParse(userIdValue, out var userId))
+        {
+            return Unauthorized("Invalid user token.");
+        }
+
+        booking.UserId = userId;
 
         if (!await _db.Screenings.AnyAsync(s => s.Id == booking.ScreeningId))
             return BadRequest($"ScreeningId {booking.ScreeningId} does not exist.");

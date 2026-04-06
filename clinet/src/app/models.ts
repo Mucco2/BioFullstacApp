@@ -5,6 +5,7 @@ export interface Movie {
   durationMinutes: number;
   ageLimit?: number | null;
   releaseDate?: string | null;
+  imageUrl?: string | null;
 }
 
 export interface ShowFormat {

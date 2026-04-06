@@ -20,12 +20,18 @@
     </button>
   </div>
 
+  <div class="auth-bar" *ngIf="authUser">
+    <div>Logget ind som <strong>{{ authUser.username }}</strong></div>
+    <button type="button" class="ghost" (click)="logout()">Log ud</button>
+  </div>
+
   <div class="status" [class.ok]="statusType === 'ok'" [class.error]="statusType === 'error'">
     {{ statusMessage }}
   </div>
 
   <section *ngIf="viewMode === 'booking'">
-    <nav class="stepper">
+    <ng-container *ngIf="isAuthenticated; else authGate">
+      <nav class="stepper">
       <button
         class="step"
         *ngFor="let item of steps"
@@ -71,6 +77,12 @@
               *ngFor="let movie of filteredMovies"
               (click)="selectMovie(movie.id)"
             >
+              <div class="poster">
+                <img *ngIf="movie.imageUrl" [src]="movie.imageUrl" [alt]="movie.title" />
+                <div *ngIf="!movie.imageUrl" class="poster-placeholder">
+                  {{ movie.title }}
+                </div>
+              </div>
               <h3>{{ movie.title }}</h3>
               <p>{{ movie.durationMinutes }} min · {{ movie.ageLimit || 'fri' }} år</p>
             </button>
@@ -81,6 +93,25 @@
         </div>
 
         <div *ngSwitchCase="3" class="step-body">
+          <h2>Vælg sal</h2>
+          <p class="muted">Vælg den sal du vil se filmen i.</p>
+          <div class="card-grid" *ngIf="filteredAuditoriums.length; else noAuds">
+            <button
+              type="button"
+              class="option-card"
+              *ngFor="let auditorium of filteredAuditoriums"
+              (click)="selectAuditorium(auditorium.id)"
+            >
+              <h3>{{ auditorium.name }}</h3>
+              <p>Rækker: {{ auditorium.rows }} · Sæder pr. række: {{ auditorium.seatPerRow }}</p>
+            </button>
+          </div>
+          <ng-template #noAuds>
+            <p class="muted">Ingen sale fundet endnu.</p>
+          </ng-template>
+        </div>
+
+        <div *ngSwitchCase="4" class="step-body">
           <h2>Vælg tid</h2>
           <p class="muted">Vælg en tidspunkt for din film.</p>
           <div class="list" *ngIf="filteredScreenings.length; else noTimes">
@@ -102,7 +133,7 @@
           </ng-template>
         </div>
 
-        <div *ngSwitchCase="4" class="step-body">
+        <div *ngSwitchCase="5" class="step-body">
           <h2>Vælg pladser</h2>
           <p class="muted">Vælg mindst én ledig plads.</p>
           <div *ngIf="seatRows.length; else noSeats">
@@ -131,7 +162,7 @@
           </ng-template>
         </div>
 
-        <div *ngSwitchCase="5" class="step-body">
+        <div *ngSwitchCase="6" class="step-body">
           <h2>Mad og drikke</h2>
           <p class="muted">Vælg snacks (valgfrit).</p>
           <div class="list" *ngIf="products.length; else noProducts">
@@ -153,15 +184,17 @@
           </ng-template>
         </div>
 
-        <div *ngSwitchCase="6" class="step-body">
+        <div *ngSwitchCase="7" class="step-body">
           <h2>Opsummering</h2>
           <div class="summary">
             <div>
               <h3>Din booking</h3>
               <p><strong>Format:</strong> {{ selectedFormat?.name }}</p>
               <p><strong>Film:</strong> {{ selectedMovie?.title }}</p>
+              <p><strong>Sal:</strong> {{ selectedAuditorium?.name || ('Sal ' + (selectedScreening?.auditoriumId || '')) }}</p>
               <p><strong>Tid:</strong> {{ selectedScreening?.startsAt | date:'medium' }}</p>
               <p><strong>Sæder:</strong> {{ seatCount }} stk</p>
+              <p><strong>Bruger:</strong> {{ authUser?.username }} ({{ authUser?.email }})</p>
             </div>
             <div>
               <h3>Pris</h3>
@@ -172,63 +205,109 @@
           </div>
 
           <div class="card">
-            <h3>Vælg bruger</h3>
-            <select name="selectedUser" [(ngModel)]="selectedUserId">
-              <option [ngValue]="null">Vælg bruger</option>
-              <option *ngFor="let user of users" [ngValue]="user.id">
-                {{ user.username }} ({{ user.email }})
-              </option>
-            </select>
-
-            <div class="inline-muted">Ingen bruger? Opret en ny nedenfor.</div>
-
-            <form class="form" (ngSubmit)="createUserAndSelect()">
+            <h3>Betaling</h3>
+            <p class="inline-muted">Dette er en demo‑betaling. Indtast test‑oplysninger.</p>
+            <form class="form" (ngSubmit)="payAndConfirm()">
               <label>
-                Email
-                <input name="userEmail" [(ngModel)]="userForm.email" />
+                Kortnavn
+                <input name="cardName" [(ngModel)]="paymentForm.cardName" />
               </label>
               <label>
-                Brugernavn
-                <input name="userName" [(ngModel)]="userForm.username" />
+                Kortnummer
+                <input name="cardNumber" [(ngModel)]="paymentForm.cardNumber" placeholder="1234 5678 9012 3456" />
               </label>
-              <label>
-                Password Hash (base64)
-                <input name="userHash" [(ngModel)]="userForm.passwordHash" />
-              </label>
-              <label>
-                Password Salt (base64)
-                <input name="userSalt" [(ngModel)]="userForm.passwordSalt" />
-              </label>
-              <label class="check">
-                <input name="userActive" type="checkbox" [(ngModel)]="userForm.isActive" />
-                Aktiv
-              </label>
-              <button type="submit" class="secondary">Opret bruger</button>
+              <div class="field-row">
+                <label>
+                  Udløb (MM/YY)
+                  <input name="cardExpiry" [(ngModel)]="paymentForm.expiry" placeholder="08/29" />
+                </label>
+                <label>
+                  CVC
+                  <input name="cardCvc" [(ngModel)]="paymentForm.cvc" placeholder="123" />
+                </label>
+              </div>
+              <button
+                type="submit"
+                class="primary"
+                [disabled]="paymentStatus === 'processing' || paymentStatus === 'paid' || !canConfirmBooking()"
+              >
+                Betal {{ grandTotal | number:'1.0-2' }} DKK
+              </button>
             </form>
-          </div>
 
-          <div class="actions">
-            <button type="button" class="primary" [disabled]="!canConfirmBooking()" (click)="confirmBooking()">
-              Bekræft booking
-            </button>
+            <div class="payment-error" *ngIf="paymentStatus === 'error'">
+              {{ paymentError }}
+            </div>
+            <div class="payment-success" *ngIf="paymentStatus === 'paid'">
+              Betaling gennemført.
+            </div>
           </div>
 
           <div class="booking-result" *ngIf="bookingResult">
-            <h3>Booking gennemført</h3>
+            <h3>Kvittering</h3>
             <p>Booking #{{ bookingResult.id }} er oprettet.</p>
+            <p *ngIf="paymentReference">Betalingsreference: {{ paymentReference }}</p>
+            <p>Status: {{ paymentStatus === 'paid' ? 'Betalt' : 'Oprettet' }}</p>
           </div>
         </div>
       </ng-container>
     </section>
 
-    <footer class="nav-actions">
-      <button type="button" class="ghost" (click)="prevStep()" [disabled]="step === 1">
-        Tilbage
-      </button>
-      <button type="button" class="primary" (click)="nextStep()" [disabled]="!canProceedFromStep(step) || step === 6">
-        Næste
-      </button>
-    </footer>
+  <footer class="nav-actions">
+    <button type="button" class="ghost" (click)="prevStep()" [disabled]="step === 1">
+      Tilbage
+    </button>
+    <button type="button" class="primary" (click)="nextStep()" [disabled]="!canProceedFromStep(step) || step === 7">
+      Næste
+    </button>
+  </footer>
+    </ng-container>
+
+    <ng-template #authGate>
+      <section class="auth-gate">
+        <div class="auth-card">
+          <div class="auth-header">
+            <h2>Log ind for at se film</h2>
+            <div class="auth-toggle">
+              <button type="button" [class.active]="authMode === 'login'" (click)="authMode = 'login'">
+                Log ind
+              </button>
+              <button type="button" [class.active]="authMode === 'register'" (click)="authMode = 'register'">
+                Opret bruger
+              </button>
+            </div>
+          </div>
+
+          <form class="form" *ngIf="authMode === 'login'" (ngSubmit)="login()">
+            <label>
+              Email eller brugernavn
+              <input name="loginId" [(ngModel)]="loginForm.emailOrUsername" />
+            </label>
+            <label>
+              Password
+              <input name="loginPassword" type="password" [(ngModel)]="loginForm.password" />
+            </label>
+            <button type="submit" class="primary">Log ind</button>
+          </form>
+
+          <form class="form" *ngIf="authMode === 'register'" (ngSubmit)="register()">
+            <label>
+              Email
+              <input name="regEmail" [(ngModel)]="registerForm.email" />
+            </label>
+            <label>
+              Brugernavn
+              <input name="regUsername" [(ngModel)]="registerForm.username" />
+            </label>
+            <label>
+              Password
+              <input name="regPassword" type="password" [(ngModel)]="registerForm.password" />
+            </label>
+            <button type="submit" class="primary">Opret og log ind</button>
+          </form>
+        </div>
+      </section>
+    </ng-template>
   </section>
 
   <section *ngIf="viewMode === 'admin'" class="admin">
@@ -301,6 +380,10 @@
               <input name="movieRelease" type="date" [(ngModel)]="movieForm.releaseDate" />
             </label>
           </div>
+          <label>
+            Image URL
+            <input name="movieImage" [(ngModel)]="movieForm.imageUrl" />
+          </label>
           <button type="submit" class="primary">Opret film</button>
         </form>
       </div>

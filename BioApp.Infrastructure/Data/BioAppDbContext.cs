@@ -53,6 +53,7 @@ public class BioAppDbContext : DbContext
 
             e.Property(x => x.Title).HasMaxLength(200).IsRequired();
             e.Property(x => x.Description).HasMaxLength(1000);
+            e.Property(x => x.ImageUrl).HasMaxLength(500);
 
             e.Property(x => x.DurationMinutes).IsRequired();
             // AgeLimit + ReleaseDate kan være NULL

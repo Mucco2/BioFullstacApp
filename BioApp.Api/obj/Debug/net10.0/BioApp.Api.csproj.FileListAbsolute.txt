@@ -336,3 +336,4 @@ C:\Users\Mucco\OneDrive\Documents\GitHub\BioFullstacApp\BioApp.Api\obj\Debug\net
 C:\Users\Mucco\OneDrive\Documents\GitHub\BioFullstacApp\BioApp.Api\obj\Debug\net10.0\BioApp.Api.pdb
 C:\Users\Mucco\OneDrive\Documents\GitHub\BioFullstacApp\BioApp.Api\obj\Debug\net10.0\BioApp.Api.genruntimeconfig.cache
 C:\Users\Mucco\OneDrive\Documents\GitHub\BioFullstacApp\BioApp.Api\obj\Debug\net10.0\ref\BioApp.Api.dll
+C:\Users\Mucco\OneDrive\Desktop\BioFullstacApp\BioApp.Api\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

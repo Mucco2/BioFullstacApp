@@ -16,6 +16,7 @@ import {
 } from './models';
 
 type StatusType = 'info' | 'ok' | 'error';
+type PaymentStatus = 'idle' | 'processing' | 'paid' | 'error';
 
 type Step = {
   id: number;
@@ -33,18 +34,32 @@ type ViewMode = 'booking' | 'admin';
 export class App implements OnInit {
   apiBase = API_BASE_URL;
 
-  statusMessage = 'Vælg format og start din booking.';
+  statusMessage = 'Log ind for at se film og starte din booking.';
   statusType: StatusType = 'info';
 
   viewMode: ViewMode = 'booking';
 
+  private readonly userKey = 'bioapp_user';
+  authUser: User | null = null;
+  authMode: 'login' | 'register' = 'login';
+  loginForm = {
+    emailOrUsername: '',
+    password: ''
+  };
+  registerForm = {
+    email: '',
+    username: '',
+    password: ''
+  };
+
   steps: Step[] = [
     { id: 1, label: 'Format' },
     { id: 2, label: 'Film' },
-    { id: 3, label: 'Tid' },
-    { id: 4, label: 'Plads' },
-    { id: 5, label: 'Mad/Drikke' },
-    { id: 6, label: 'Opsummering' }
+    { id: 3, label: 'Sal' },
+    { id: 4, label: 'Tid' },
+    { id: 5, label: 'Plads' },
+    { id: 6, label: 'Mad/Drikke' },
+    { id: 7, label: 'Opsummering' }
   ];
 
   step = 1;
@@ -59,6 +74,7 @@ export class App implements OnInit {
 
   selectedFormatId: number | null = null;
   selectedMovieId: number | null = null;
+  selectedAuditoriumId: number | null = null;
   selectedScreeningId: number | null = null;
   selectedSeatIds = new Set<number>();
 
@@ -78,6 +94,15 @@ export class App implements OnInit {
   };
 
   bookingResult: Booking | null = null;
+  paymentStatus: PaymentStatus = 'idle';
+  paymentError = '';
+  paymentReference = '';
+  paymentForm = {
+    cardName: '',
+    cardNumber: '',
+    expiry: '',
+    cvc: ''
+  };
 
   showFormatForm = {
     name: '2D',
@@ -89,7 +114,8 @@ export class App implements OnInit {
     description: '',
     durationMinutes: 120,
     ageLimit: '' as number | '',
-    releaseDate: ''
+    releaseDate: '',
+    imageUrl: ''
   };
 
   auditoriumForm = {
@@ -123,6 +149,7 @@ export class App implements OnInit {
   constructor(private api: ApiService) {}
 
   ngOnInit(): void {
+    this.restoreSession();
     this.loadInitialData();
   }
 
@@ -149,6 +176,11 @@ export class App implements OnInit {
       error: err => this.setStatus(`Kunne ikke hente spilletider. ${this.formatError(err)}`, 'error')
     });
 
+    this.api.getAuditoriums().subscribe({
+      next: auditoriums => (this.auditoriums = auditoriums),
+      error: err => this.setStatus(`Kunne ikke hente sale. ${this.formatError(err)}`, 'error')
+    });
+
     this.api.getProducts().subscribe({
       next: products => {
         this.products = products;
@@ -169,7 +201,6 @@ export class App implements OnInit {
 
   loadAdminData(): void {
     this.loadInitialData();
-    this.loadAuditoriums();
     this.loadSeats();
   }
 
@@ -187,12 +218,113 @@ export class App implements OnInit {
     });
   }
 
+  get isAuthenticated(): boolean {
+    return !!this.authUser;
+  }
+
+  restoreSession(): void {
+    const token = this.api.getToken();
+    const userRaw = localStorage.getItem(this.userKey);
+    if (!token || !userRaw) {
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userRaw) as User;
+      if (user && user.id) {
+        this.authUser = user;
+        this.selectedUserId = user.id;
+      }
+    } catch {
+      this.api.setToken(null);
+      localStorage.removeItem(this.userKey);
+    }
+  }
+
+  login(): void {
+    const payload = {
+      emailOrUsername: this.loginForm.emailOrUsername.trim(),
+      password: this.loginForm.password
+    };
+
+    if (!payload.emailOrUsername || !payload.password) {
+      this.setStatus('Udfyld login oplysninger.', 'error');
+      return;
+    }
+
+    this.api.login(payload).subscribe({
+      next: res => {
+        this.api.setToken(res.token);
+        this.authUser = res.user;
+        localStorage.setItem(this.userKey, JSON.stringify(res.user));
+        this.selectedUserId = res.user.id;
+        this.loginForm = { emailOrUsername: '', password: '' };
+        this.setStatus(`Logget ind som ${res.user.username}`, 'ok');
+        this.loadInitialData();
+        this.step = 1;
+      },
+      error: err => this.setStatus(`Login fejlede. ${this.formatError(err)}`, 'error')
+    });
+  }
+
+  register(): void {
+    const payload = {
+      email: this.registerForm.email.trim().toLowerCase(),
+      username: this.registerForm.username.trim(),
+      password: this.registerForm.password
+    };
+
+    if (!payload.email || !payload.username || !payload.password) {
+      this.setStatus('Udfyld email, brugernavn og password.', 'error');
+      return;
+    }
+
+    this.api.register(payload).subscribe({
+      next: res => {
+        this.api.setToken(res.token);
+        this.authUser = res.user;
+        localStorage.setItem(this.userKey, JSON.stringify(res.user));
+        this.selectedUserId = res.user.id;
+        this.registerForm = { email: '', username: '', password: '' };
+        this.setStatus(`Bruger oprettet og logget ind som ${res.user.username}`, 'ok');
+        this.loadInitialData();
+        this.step = 1;
+      },
+      error: err => this.setStatus(`Kunne ikke oprette bruger. ${this.formatError(err)}`, 'error')
+    });
+  }
+
+  logout(): void {
+    this.api.setToken(null);
+    localStorage.removeItem(this.userKey);
+    this.authUser = null;
+    this.selectedUserId = null;
+    this.selectedFormatId = null;
+    this.selectedMovieId = null;
+    this.selectedAuditoriumId = null;
+    this.selectedScreeningId = null;
+    this.selectedSeatIds.clear();
+    this.availableSeats = [];
+    this.seatRows = [];
+    this.seatsByRow = {};
+    this.paymentStatus = 'idle';
+    this.paymentError = '';
+    this.paymentReference = '';
+    this.bookingResult = null;
+    this.setStatus('Du er logget ud.', 'info');
+    this.step = 1;
+  }
+
   get selectedFormat(): ShowFormat | undefined {
     return this.showFormats.find(format => format.id === this.selectedFormatId!);
   }
 
   get selectedMovie(): Movie | undefined {
     return this.movies.find(movie => movie.id === this.selectedMovieId!);
+  }
+
+  get selectedAuditorium(): Auditorium | undefined {
+    return this.auditoriums.find(auditorium => auditorium.id === this.selectedAuditoriumId!);
   }
 
   get selectedScreening(): Screening | undefined {
@@ -211,14 +343,30 @@ export class App implements OnInit {
     return this.movies.filter(movie => movieIds.has(movie.id));
   }
 
-  get filteredScreenings(): Screening[] {
+  get filteredAuditoriums(): Auditorium[] {
     if (!this.selectedFormatId || !this.selectedMovieId) {
+      return [];
+    }
+    const auditoriumIds = new Set(
+      this.screenings
+        .filter(
+          screening =>
+            screening.showFormatId === this.selectedFormatId && screening.movieId === this.selectedMovieId
+        )
+        .map(screening => screening.auditoriumId)
+    );
+    return this.auditoriums.filter(auditorium => auditoriumIds.has(auditorium.id));
+  }
+
+  get filteredScreenings(): Screening[] {
+    if (!this.selectedFormatId || !this.selectedMovieId || !this.selectedAuditoriumId) {
       return [];
     }
     return this.screenings
       .filter(
         screening =>
           screening.showFormatId === this.selectedFormatId && screening.movieId === this.selectedMovieId
+          && screening.auditoriumId === this.selectedAuditoriumId
       )
       .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
   }
@@ -260,11 +408,13 @@ export class App implements OnInit {
     }
     this.selectedFormatId = formatId;
     this.selectedMovieId = null;
+    this.selectedAuditoriumId = null;
     this.selectedScreeningId = null;
     this.availableSeats = [];
     this.seatRows = [];
     this.seatsByRow = {};
     this.selectedSeatIds.clear();
+    this.resetCheckout();
     this.step = 2;
   }
 
@@ -273,19 +423,36 @@ export class App implements OnInit {
       return;
     }
     this.selectedMovieId = movieId;
+    this.selectedAuditoriumId = null;
     this.selectedScreeningId = null;
     this.availableSeats = [];
     this.seatRows = [];
     this.seatsByRow = {};
     this.selectedSeatIds.clear();
+    this.resetCheckout();
     this.step = 3;
+  }
+
+  selectAuditorium(auditoriumId: number): void {
+    if (this.selectedAuditoriumId === auditoriumId) {
+      return;
+    }
+    this.selectedAuditoriumId = auditoriumId;
+    this.selectedScreeningId = null;
+    this.availableSeats = [];
+    this.seatRows = [];
+    this.seatsByRow = {};
+    this.selectedSeatIds.clear();
+    this.resetCheckout();
+    this.step = 4;
   }
 
   selectScreening(screeningId: number): void {
     this.selectedScreeningId = screeningId;
     this.selectedSeatIds.clear();
     this.loadAvailableSeats(screeningId);
-    this.step = 4;
+    this.resetCheckout();
+    this.step = 5;
   }
 
   loadAvailableSeats(screeningId: number): void {
@@ -344,12 +511,14 @@ export class App implements OnInit {
       case 2:
         return !!this.selectedMovieId;
       case 3:
-        return !!this.selectedScreeningId;
+        return !!this.selectedAuditoriumId;
       case 4:
-        return this.seatCount > 0;
+        return !!this.selectedScreeningId;
       case 5:
-        return true;
+        return this.seatCount > 0;
       case 6:
+        return true;
+      case 7:
         return this.canConfirmBooking();
       default:
         return false;
@@ -357,24 +526,81 @@ export class App implements OnInit {
   }
 
   canConfirmBooking(): boolean {
-    return !!this.selectedUserId && !!this.selectedScreeningId && this.seatCount > 0;
+    return this.isAuthenticated && !!this.selectedUserId && !!this.selectedScreeningId && this.seatCount > 0;
   }
 
-  async confirmBooking(): Promise<void> {
+  async payAndConfirm(): Promise<void> {
     if (!this.canConfirmBooking() || !this.selectedScreeningId) {
       this.setStatus('Vælg bruger, tid og mindst 1 sæde.', 'error');
       return;
     }
 
+    const validation = this.validatePayment();
+    if (validation) {
+      this.paymentStatus = 'error';
+      this.paymentError = validation;
+      this.setStatus(validation, 'error');
+      return;
+    }
+
+    this.paymentStatus = 'processing';
+    this.paymentError = '';
+    this.setStatus('Behandler betaling...', 'info');
+
+    const booking = await this.placeBooking();
+    if (!booking) {
+      this.paymentStatus = 'error';
+      return;
+    }
+
+    this.paymentStatus = 'paid';
+    this.paymentReference = this.generatePaymentReference();
+    this.setStatus(`Betaling gennemført! Booking #${booking.id}`, 'ok');
+  }
+
+  private validatePayment(): string | null {
+    const cardName = this.paymentForm.cardName.trim();
+    const cardNumber = this.paymentForm.cardNumber.replace(/\s+/g, '');
+    const expiry = this.paymentForm.expiry.trim();
+    const cvc = this.paymentForm.cvc.trim();
+
+    if (!cardName || !cardNumber || !expiry || !cvc) {
+      return 'Udfyld alle betalingsfelter.';
+    }
+
+    if (!/^\d{12,19}$/.test(cardNumber)) {
+      return 'Kortnummer skal være 12-19 cifre.';
+    }
+
+    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
+      return 'Udløb skal være i formatet MM/YY.';
+    }
+
+    if (!/^\d{3,4}$/.test(cvc)) {
+      return 'CVC skal være 3-4 cifre.';
+    }
+
+    return null;
+  }
+
+  private generatePaymentReference(): string {
+    const part = Math.floor(Math.random() * 900000 + 100000);
+    return `PAY-${part}`;
+  }
+
+  private async placeBooking(): Promise<Booking | null> {
+    if (!this.selectedScreeningId) {
+      return null;
+    }
+
     const payload = {
       userId: this.selectedUserId!,
       screeningId: this.selectedScreeningId,
-      status: 'Pending',
-      notes: 'Booked from client'
+      status: 'Paid',
+      notes: 'Paid online'
     };
 
     try {
-      this.setStatus('Opretter booking...', 'info');
       const booking = await firstValueFrom(this.api.createBooking(payload));
       this.bookingResult = booking;
 
@@ -401,9 +627,10 @@ export class App implements OnInit {
 
       await Promise.all([...seatRequests, ...productRequests]);
 
-      this.setStatus(`Booking gennemført! Booking #${booking.id}`, 'ok');
+      return booking;
     } catch (err) {
       this.setStatus(`Kunne ikke gennemføre booking. ${this.formatError(err)}`, 'error');
+      return null;
     }
   }
 
@@ -465,7 +692,8 @@ export class App implements OnInit {
       description: this.movieForm.description?.trim() || null,
       durationMinutes: this.toNumber(this.movieForm.durationMinutes, 0),
       ageLimit: this.toNullableNumber(this.movieForm.ageLimit),
-      releaseDate: this.movieForm.releaseDate || null
+      releaseDate: this.movieForm.releaseDate || null,
+      imageUrl: this.movieForm.imageUrl?.trim() || null
     };
 
     if (!payload.title) {
@@ -481,7 +709,8 @@ export class App implements OnInit {
           description: '',
           durationMinutes: 120,
           ageLimit: '' as number | '',
-          releaseDate: ''
+          releaseDate: '',
+          imageUrl: ''
         };
         this.setStatus(`Film oprettet: ${movie.title}`, 'ok');
       },
@@ -602,6 +831,13 @@ export class App implements OnInit {
     }
     this.seatRows = rows;
     this.seatsByRow = byRow;
+  }
+
+  private resetCheckout(): void {
+    this.bookingResult = null;
+    this.paymentStatus = 'idle';
+    this.paymentError = '';
+    this.paymentReference = '';
   }
 
   private getQuantity(productId: number): number {

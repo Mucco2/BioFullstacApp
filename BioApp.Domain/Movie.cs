@@ -8,6 +8,7 @@ public class Movie
     public int DurationMinutes { get; set; }
     public int? AgeLimit { get; set; }
     public DateOnly? ReleaseDate { get; set; }
+    public string? ImageUrl { get; set; }
 
     public List<Screening> Screenings { get; set; } = new();
 }
