@@ -203,51 +203,27 @@
               <p class="total">Total: {{ grandTotal | number:'1.0-2' }} DKK</p>
             </div>
           </div>
-
           <div class="card">
-            <h3>Betaling</h3>
-            <p class="inline-muted">Dette er en demo‑betaling. Indtast test‑oplysninger.</p>
-            <form class="form" (ngSubmit)="payAndConfirm()">
-              <label>
-                Kortnavn
-                <input name="cardName" [(ngModel)]="paymentForm.cardName" />
-              </label>
-              <label>
-                Kortnummer
-                <input name="cardNumber" [(ngModel)]="paymentForm.cardNumber" placeholder="1234 5678 9012 3456" />
-              </label>
-              <div class="field-row">
-                <label>
-                  Udløb (MM/YY)
-                  <input name="cardExpiry" [(ngModel)]="paymentForm.expiry" placeholder="08/29" />
-                </label>
-                <label>
-                  CVC
-                  <input name="cardCvc" [(ngModel)]="paymentForm.cvc" placeholder="123" />
-                </label>
-              </div>
-              <button
-                type="submit"
-                class="primary"
-                [disabled]="paymentStatus === 'processing' || paymentStatus === 'paid' || !canConfirmBooking()"
-              >
-                Betal {{ grandTotal | number:'1.0-2' }} DKK
-              </button>
-            </form>
-
-            <div class="payment-error" *ngIf="paymentStatus === 'error'">
-              {{ paymentError }}
-            </div>
-            <div class="payment-success" *ngIf="paymentStatus === 'paid'">
-              Betaling gennemført.
-            </div>
+            <h3>Bekræft booking</h3>
+            <p class="inline-muted">Når du bekræfter, opretter vi din booking.</p>
+            <button
+              type="button"
+              class="primary"
+              (click)="confirmBooking()"
+              [disabled]="!canConfirmBooking() || !!bookingResult"
+            >
+              Bekræft booking
+            </button>
           </div>
 
           <div class="booking-result" *ngIf="bookingResult">
             <h3>Kvittering</h3>
             <p>Booking #{{ bookingResult.id }} er oprettet.</p>
-            <p *ngIf="paymentReference">Betalingsreference: {{ paymentReference }}</p>
-            <p>Status: {{ paymentStatus === 'paid' ? 'Betalt' : 'Oprettet' }}</p>
+            <p>Status: Oprettet</p>
+          </div>
+          <div class="thank-you" *ngIf="bookingResult">
+            <h3>Tak!</h3>
+            <p>Tak fordi du købte hos os. Vi glæder os til at se dig i biografen.</p>
           </div>
         </div>
       </ng-container>
@@ -257,7 +233,7 @@
     <button type="button" class="ghost" (click)="prevStep()" [disabled]="step === 1">
       Tilbage
     </button>
-    <button type="button" class="primary" (click)="nextStep()" [disabled]="!canProceedFromStep(step) || step === 7">
+    <button type="button" class="primary" (click)="nextStep()" [disabled]="!canProceedFromStep(step) || step === steps.length">
       Næste
     </button>
   </footer>
@@ -323,11 +299,32 @@
               <div class="list-title">{{ format.name }}</div>
               <div class="list-sub">Ekstra pris: {{ format.priceAdd | number:'1.0-2' }} DKK</div>
             </div>
+            <div class="row-actions">
+              <button type="button" class="secondary" (click)="startEditShowFormat(format)">Rediger</button>
+              <button type="button" class="ghost danger" (click)="deleteShowFormat(format.id)">Slet</button>
+            </div>
           </div>
         </div>
         <ng-template #noFormatsAdmin>
           <p class="muted">Ingen formater endnu.</p>
         </ng-template>
+        <div class="edit-box" *ngIf="editingShowFormatId">
+          <h3>Rediger format</h3>
+          <form class="form" (ngSubmit)="updateShowFormat()">
+            <label>
+              Navn
+              <input name="formatEditName" [(ngModel)]="showFormatEditForm.name" />
+            </label>
+            <label>
+              Ekstra pris
+              <input name="formatEditPrice" type="number" [(ngModel)]="showFormatEditForm.priceAdd" />
+            </label>
+            <div class="row-actions">
+              <button type="submit" class="primary">Gem ændringer</button>
+              <button type="button" class="ghost" (click)="cancelEditShowFormat()">Annuller</button>
+            </div>
+          </form>
+        </div>
         <form class="form" (ngSubmit)="createShowFormat()">
           <label>
             Navn
@@ -352,11 +349,50 @@
               <div class="list-title">{{ movie.title }}</div>
               <div class="list-sub">#{{ movie.id }} · {{ movie.durationMinutes }} min</div>
             </div>
+            <div class="row-actions">
+              <button type="button" class="secondary" (click)="startEditMovie(movie)">Rediger</button>
+              <button type="button" class="ghost danger" (click)="deleteMovie(movie.id)">Slet</button>
+            </div>
           </div>
         </div>
         <ng-template #noMoviesAdmin>
           <p class="muted">Ingen film endnu.</p>
         </ng-template>
+        <div class="edit-box" *ngIf="editingMovieId">
+          <h3>Rediger film</h3>
+          <form class="form" (ngSubmit)="updateMovie()">
+            <label>
+              Title
+              <input name="movieEditTitle" [(ngModel)]="movieEditForm.title" />
+            </label>
+            <label>
+              Description
+              <textarea name="movieEditDesc" rows="2" [(ngModel)]="movieEditForm.description"></textarea>
+            </label>
+            <div class="field-row">
+              <label>
+                Duration (min)
+                <input name="movieEditDuration" type="number" [(ngModel)]="movieEditForm.durationMinutes" />
+              </label>
+              <label>
+                Age Limit
+                <input name="movieEditAge" type="number" [(ngModel)]="movieEditForm.ageLimit" />
+              </label>
+              <label>
+                Release Date
+                <input name="movieEditRelease" type="date" [(ngModel)]="movieEditForm.releaseDate" />
+              </label>
+            </div>
+            <label>
+              Image URL
+              <input name="movieEditImage" [(ngModel)]="movieEditForm.imageUrl" />
+            </label>
+            <div class="row-actions">
+              <button type="submit" class="primary">Gem ændringer</button>
+              <button type="button" class="ghost" (click)="cancelEditMovie()">Annuller</button>
+            </div>
+          </form>
+        </div>
         <form class="form" (ngSubmit)="createMovie()">
           <label>
             Title
@@ -399,11 +435,38 @@
               <div class="list-title">{{ auditorium.name }}</div>
               <div class="list-sub">Rækker: {{ auditorium.rows }} · Sæder pr. række: {{ auditorium.seatPerRow }}</div>
             </div>
+            <div class="row-actions">
+              <button type="button" class="secondary" (click)="startEditAuditorium(auditorium)">Rediger</button>
+              <button type="button" class="ghost danger" (click)="deleteAuditorium(auditorium.id)">Slet</button>
+            </div>
           </div>
         </div>
         <ng-template #noAuditoriums>
           <p class="muted">Ingen sale endnu.</p>
         </ng-template>
+        <div class="edit-box" *ngIf="editingAuditoriumId">
+          <h3>Rediger sal</h3>
+          <form class="form" (ngSubmit)="updateAuditorium()">
+            <label>
+              Navn
+              <input name="audEditName" [(ngModel)]="auditoriumEditForm.name" />
+            </label>
+            <div class="field-row">
+              <label>
+                Rækker
+                <input name="audEditRows" type="number" [(ngModel)]="auditoriumEditForm.rows" />
+              </label>
+              <label>
+                Sæder pr. række
+                <input name="audEditSeats" type="number" [(ngModel)]="auditoriumEditForm.seatPerRow" />
+              </label>
+            </div>
+            <div class="row-actions">
+              <button type="submit" class="primary">Gem ændringer</button>
+              <button type="button" class="ghost" (click)="cancelEditAuditorium()">Annuller</button>
+            </div>
+          </form>
+        </div>
         <form class="form" (ngSubmit)="createAuditorium()">
           <label>
             Navn
@@ -429,16 +492,52 @@
           <button type="button" (click)="loadSeats()">Reload</button>
         </div>
         <div class="list" *ngIf="seats.length; else noSeatsAdmin">
-          <div class="list-row" *ngFor="let seat of seats | slice:0:8">
+          <div class="list-row" *ngFor="let seat of seats">
             <div>
               <div class="list-title">Sal {{ seat.auditoriumId }} · R{{ seat.seatRow }} S{{ seat.seatNumber }}</div>
               <div class="list-sub">{{ seat.seatType }}</div>
+            </div>
+            <div class="row-actions">
+              <button type="button" class="secondary" (click)="startEditSeat(seat)">Rediger</button>
+              <button type="button" class="ghost danger" (click)="deleteSeat(seat.id)">Slet</button>
             </div>
           </div>
         </div>
         <ng-template #noSeatsAdmin>
           <p class="muted">Ingen sæder endnu.</p>
         </ng-template>
+        <div class="edit-box" *ngIf="editingSeatId">
+          <h3>Rediger sæde</h3>
+          <form class="form" (ngSubmit)="updateSeat()">
+            <label>
+              Sal
+              <select name="seatEditAud" [(ngModel)]="seatEditForm.auditoriumId">
+                <option [ngValue]="0">Vælg sal</option>
+                <option *ngFor="let auditorium of auditoriums" [ngValue]="auditorium.id">
+                  {{ auditorium.name }} (#{{ auditorium.id }})
+                </option>
+              </select>
+            </label>
+            <div class="field-row">
+              <label>
+                Række
+                <input name="seatEditRow" type="number" [(ngModel)]="seatEditForm.seatRow" />
+              </label>
+              <label>
+                Nummer
+                <input name="seatEditNumber" type="number" [(ngModel)]="seatEditForm.seatNumber" />
+              </label>
+              <label>
+                Type
+                <input name="seatEditType" [(ngModel)]="seatEditForm.seatType" />
+              </label>
+            </div>
+            <div class="row-actions">
+              <button type="submit" class="primary">Gem ændringer</button>
+              <button type="button" class="ghost" (click)="cancelEditSeat()">Annuller</button>
+            </div>
+          </form>
+        </div>
         <form class="form" (ngSubmit)="createSeat()">
           <label>
             Sal
@@ -473,16 +572,58 @@
           <button type="button" (click)="loadInitialData()">Reload</button>
         </div>
         <div class="list" *ngIf="screenings.length; else noScreeningsAdmin">
-          <div class="list-row" *ngFor="let screening of screenings | slice:0:6">
+          <div class="list-row" *ngFor="let screening of screenings">
             <div>
               <div class="list-title">{{ screening.startsAt | date:'medium' }}</div>
               <div class="list-sub">Film {{ screening.movieId }} · Sal {{ screening.auditoriumId }} · Format {{ screening.showFormatId }}</div>
+            </div>
+            <div class="row-actions">
+              <button type="button" class="secondary" (click)="startEditScreening(screening)">Rediger</button>
+              <button type="button" class="ghost danger" (click)="deleteScreening(screening.id)">Slet</button>
             </div>
           </div>
         </div>
         <ng-template #noScreeningsAdmin>
           <p class="muted">Ingen forestillinger endnu.</p>
         </ng-template>
+        <div class="edit-box" *ngIf="editingScreeningId">
+          <h3>Rediger forestilling</h3>
+          <form class="form" (ngSubmit)="updateScreening()">
+            <label>
+              Film
+              <select name="screenEditMovie" [(ngModel)]="screeningEditForm.movieId">
+                <option [ngValue]="0">Vælg film</option>
+                <option *ngFor="let movie of movies" [ngValue]="movie.id">{{ movie.title }}</option>
+              </select>
+            </label>
+            <label>
+              Sal
+              <select name="screenEditAud" [(ngModel)]="screeningEditForm.auditoriumId">
+                <option [ngValue]="0">Vælg sal</option>
+                <option *ngFor="let auditorium of auditoriums" [ngValue]="auditorium.id">{{ auditorium.name }}</option>
+              </select>
+            </label>
+            <label>
+              Format
+              <select name="screenEditFormat" [(ngModel)]="screeningEditForm.showFormatId">
+                <option [ngValue]="0">Vælg format</option>
+                <option *ngFor="let format of showFormats" [ngValue]="format.id">{{ format.name }}</option>
+              </select>
+            </label>
+            <label>
+              Starttid
+              <input name="screenEditStart" type="datetime-local" [(ngModel)]="screeningEditForm.startsAt" />
+            </label>
+            <label>
+              Base Ticket Price
+              <input name="screenEditPrice" type="number" [(ngModel)]="screeningEditForm.baseTicketPrice" />
+            </label>
+            <div class="row-actions">
+              <button type="submit" class="primary">Gem ændringer</button>
+              <button type="button" class="ghost" (click)="cancelEditScreening()">Annuller</button>
+            </div>
+          </form>
+        </div>
         <form class="form" (ngSubmit)="createScreening()">
           <label>
             Film
@@ -528,11 +669,42 @@
               <div class="list-title">{{ product.name }}</div>
               <div class="list-sub">{{ product.category }} · {{ product.price | number:'1.0-2' }} DKK</div>
             </div>
+            <div class="row-actions">
+              <button type="button" class="secondary" (click)="startEditProduct(product)">Rediger</button>
+              <button type="button" class="ghost danger" (click)="deleteProduct(product.id)">Slet</button>
+            </div>
           </div>
         </div>
         <ng-template #noProductsAdmin>
           <p class="muted">Ingen produkter endnu.</p>
         </ng-template>
+        <div class="edit-box" *ngIf="editingProductId">
+          <h3>Rediger produkt</h3>
+          <form class="form" (ngSubmit)="updateProduct()">
+            <label>
+              Navn
+              <input name="prodEditName" [(ngModel)]="productEditForm.name" />
+            </label>
+            <label>
+              Kategori
+              <input name="prodEditCat" [(ngModel)]="productEditForm.category" />
+            </label>
+            <div class="field-row">
+              <label>
+                Pris
+                <input name="prodEditPrice" type="number" [(ngModel)]="productEditForm.price" />
+              </label>
+              <label class="check">
+                <input name="prodEditActive" type="checkbox" [(ngModel)]="productEditForm.isActive" />
+                Aktiv
+              </label>
+            </div>
+            <div class="row-actions">
+              <button type="submit" class="primary">Gem ændringer</button>
+              <button type="button" class="ghost" (click)="cancelEditProduct()">Annuller</button>
+            </div>
+          </form>
+        </div>
         <form class="form" (ngSubmit)="createProduct()">
           <label>
             Navn

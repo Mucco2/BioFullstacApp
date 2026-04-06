@@ -57,6 +57,14 @@ export class ApiService {
     return this.http.post<ShowFormat>(`${API_BASE_URL}/showformats`, payload);
   }
 
+  updateShowFormat(id: number, payload: ShowFormat) {
+    return this.http.put<void>(`${API_BASE_URL}/showformats/${id}`, payload);
+  }
+
+  deleteShowFormat(id: number) {
+    return this.http.delete<void>(`${API_BASE_URL}/showformats/${id}`);
+  }
+
   getAuditoriums() {
     return this.http.get<Auditorium[]>(`${API_BASE_URL}/auditoriums`);
   }
@@ -65,12 +73,28 @@ export class ApiService {
     return this.http.post<Auditorium>(`${API_BASE_URL}/auditoriums`, payload);
   }
 
+  updateAuditorium(id: number, payload: Auditorium) {
+    return this.http.put<void>(`${API_BASE_URL}/auditoriums/${id}`, payload);
+  }
+
+  deleteAuditorium(id: number) {
+    return this.http.delete<void>(`${API_BASE_URL}/auditoriums/${id}`);
+  }
+
   getSeats() {
     return this.http.get<Seat[]>(`${API_BASE_URL}/seats`);
   }
 
   createSeat(payload: Omit<Seat, 'id'>) {
     return this.http.post<Seat>(`${API_BASE_URL}/seats`, payload);
+  }
+
+  updateSeat(id: number, payload: Seat) {
+    return this.http.put<void>(`${API_BASE_URL}/seats/${id}`, payload);
+  }
+
+  deleteSeat(id: number) {
+    return this.http.delete<void>(`${API_BASE_URL}/seats/${id}`);
   }
 
   createMovie(payload: Omit<Movie, 'id'>) {
@@ -91,6 +115,14 @@ export class ApiService {
 
   createScreening(payload: Omit<Screening, 'id'>) {
     return this.http.post<Screening>(`${API_BASE_URL}/screenings`, payload);
+  }
+
+  updateScreening(id: number, payload: Screening) {
+    return this.http.put<void>(`${API_BASE_URL}/screenings/${id}`, payload);
+  }
+
+  deleteScreening(id: number) {
+    return this.http.delete<void>(`${API_BASE_URL}/screenings/${id}`);
   }
 
   getScreeningsByMovieDate(movieId: number, date: string) {
@@ -122,6 +154,14 @@ export class ApiService {
 
   createProduct(payload: Omit<Product, 'id'>) {
     return this.http.post<Product>(`${API_BASE_URL}/products`, payload);
+  }
+
+  updateProduct(id: number, payload: Product) {
+    return this.http.put<void>(`${API_BASE_URL}/products/${id}`, payload);
+  }
+
+  deleteProduct(id: number) {
+    return this.http.delete<void>(`${API_BASE_URL}/products/${id}`);
   }
 
   getBookings() {

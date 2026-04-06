@@ -16,7 +16,6 @@ import {
 } from './models';
 
 type StatusType = 'info' | 'ok' | 'error';
-type PaymentStatus = 'idle' | 'processing' | 'paid' | 'error';
 
 type Step = {
   id: number;
@@ -94,22 +93,28 @@ export class App implements OnInit {
   };
 
   bookingResult: Booking | null = null;
-  paymentStatus: PaymentStatus = 'idle';
-  paymentError = '';
-  paymentReference = '';
-  paymentForm = {
-    cardName: '',
-    cardNumber: '',
-    expiry: '',
-    cvc: ''
-  };
-
   showFormatForm = {
     name: '2D',
     priceAdd: 0
   };
+  editingShowFormatId: number | null = null;
+  showFormatEditForm = {
+    id: 0,
+    name: '',
+    priceAdd: 0
+  };
 
   movieForm = {
+    title: '',
+    description: '',
+    durationMinutes: 120,
+    ageLimit: '' as number | '',
+    releaseDate: '',
+    imageUrl: ''
+  };
+  editingMovieId: number | null = null;
+  movieEditForm = {
+    id: 0,
     title: '',
     description: '',
     durationMinutes: 120,
@@ -123,8 +128,23 @@ export class App implements OnInit {
     rows: 8,
     seatPerRow: 10
   };
+  editingAuditoriumId: number | null = null;
+  auditoriumEditForm = {
+    id: 0,
+    name: '',
+    rows: 0,
+    seatPerRow: 0
+  };
 
   seatForm = {
+    auditoriumId: 0,
+    seatRow: 1,
+    seatNumber: 1,
+    seatType: 'Standard'
+  };
+  editingSeatId: number | null = null;
+  seatEditForm = {
+    id: 0,
     auditoriumId: 0,
     seatRow: 1,
     seatNumber: 1,
@@ -138,8 +158,25 @@ export class App implements OnInit {
     startsAt: '',
     baseTicketPrice: 120
   };
+  editingScreeningId: number | null = null;
+  screeningEditForm = {
+    id: 0,
+    movieId: 0,
+    auditoriumId: 0,
+    showFormatId: 0,
+    startsAt: '',
+    baseTicketPrice: 120
+  };
 
   productForm = {
+    name: '',
+    category: 'Drink',
+    price: 0,
+    isActive: true
+  };
+  editingProductId: number | null = null;
+  productEditForm = {
+    id: 0,
     name: '',
     category: 'Drink',
     price: 0,
@@ -307,9 +344,6 @@ export class App implements OnInit {
     this.availableSeats = [];
     this.seatRows = [];
     this.seatsByRow = {};
-    this.paymentStatus = 'idle';
-    this.paymentError = '';
-    this.paymentReference = '';
     this.bookingResult = null;
     this.setStatus('Du er logget ud.', 'info');
     this.step = 1;
@@ -519,73 +553,30 @@ export class App implements OnInit {
       case 6:
         return true;
       case 7:
-        return this.canConfirmBooking();
+        return true;
       default:
         return false;
     }
   }
 
   canConfirmBooking(): boolean {
-    return this.isAuthenticated && !!this.selectedUserId && !!this.selectedScreeningId && this.seatCount > 0;
+    const userId = this.selectedUserId ?? this.authUser?.id ?? null;
+    return this.isAuthenticated && !!userId && !!this.selectedScreeningId && this.seatCount > 0;
   }
 
-  async payAndConfirm(): Promise<void> {
+  async confirmBooking(): Promise<void> {
     if (!this.canConfirmBooking() || !this.selectedScreeningId) {
       this.setStatus('Vælg bruger, tid og mindst 1 sæde.', 'error');
       return;
     }
 
-    const validation = this.validatePayment();
-    if (validation) {
-      this.paymentStatus = 'error';
-      this.paymentError = validation;
-      this.setStatus(validation, 'error');
-      return;
-    }
-
-    this.paymentStatus = 'processing';
-    this.paymentError = '';
-    this.setStatus('Behandler betaling...', 'info');
-
+    this.setStatus('Opretter booking...', 'info');
     const booking = await this.placeBooking();
     if (!booking) {
-      this.paymentStatus = 'error';
       return;
     }
 
-    this.paymentStatus = 'paid';
-    this.paymentReference = this.generatePaymentReference();
-    this.setStatus(`Betaling gennemført! Booking #${booking.id}`, 'ok');
-  }
-
-  private validatePayment(): string | null {
-    const cardName = this.paymentForm.cardName.trim();
-    const cardNumber = this.paymentForm.cardNumber.replace(/\s+/g, '');
-    const expiry = this.paymentForm.expiry.trim();
-    const cvc = this.paymentForm.cvc.trim();
-
-    if (!cardName || !cardNumber || !expiry || !cvc) {
-      return 'Udfyld alle betalingsfelter.';
-    }
-
-    if (!/^\d{12,19}$/.test(cardNumber)) {
-      return 'Kortnummer skal være 12-19 cifre.';
-    }
-
-    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-      return 'Udløb skal være i formatet MM/YY.';
-    }
-
-    if (!/^\d{3,4}$/.test(cvc)) {
-      return 'CVC skal være 3-4 cifre.';
-    }
-
-    return null;
-  }
-
-  private generatePaymentReference(): string {
-    const part = Math.floor(Math.random() * 900000 + 100000);
-    return `PAY-${part}`;
+    this.setStatus(`Booking oprettet! #${booking.id}`, 'ok');
   }
 
   private async placeBooking(): Promise<Booking | null> {
@@ -594,7 +585,7 @@ export class App implements OnInit {
     }
 
     const payload = {
-      userId: this.selectedUserId!,
+      userId: this.selectedUserId ?? this.authUser?.id ?? 0,
       screeningId: this.selectedScreeningId,
       status: 'Paid',
       notes: 'Paid online'
@@ -629,7 +620,8 @@ export class App implements OnInit {
 
       return booking;
     } catch (err) {
-      this.setStatus(`Kunne ikke gennemføre booking. ${this.formatError(err)}`, 'error');
+      const message = this.formatError(err);
+      this.setStatus(`Kunne ikke gennemføre booking. ${message}`, 'error');
       return null;
     }
   }
@@ -686,6 +678,68 @@ export class App implements OnInit {
     });
   }
 
+  startEditShowFormat(format: ShowFormat): void {
+    this.editingShowFormatId = format.id;
+    this.showFormatEditForm = {
+      id: format.id,
+      name: format.name,
+      priceAdd: Number(format.priceAdd ?? 0)
+    };
+  }
+
+  cancelEditShowFormat(): void {
+    this.editingShowFormatId = null;
+    this.showFormatEditForm = { id: 0, name: '', priceAdd: 0 };
+  }
+
+  updateShowFormat(): void {
+    if (!this.editingShowFormatId) {
+      return;
+    }
+
+    const payload: ShowFormat = {
+      id: this.editingShowFormatId,
+      name: this.showFormatEditForm.name.trim(),
+      priceAdd: this.toNumber(this.showFormatEditForm.priceAdd, 0)
+    };
+
+    if (!payload.name) {
+      this.setStatus('Format navn er påkrævet.', 'error');
+      return;
+    }
+
+    this.api.updateShowFormat(payload.id, payload).subscribe({
+      next: () => {
+        this.showFormats = this.showFormats.map(item => (item.id === payload.id ? payload : item));
+        this.setStatus(`Format opdateret: ${payload.name}`, 'ok');
+        this.cancelEditShowFormat();
+      },
+      error: err => this.setStatus(`Kunne ikke opdatere format. ${this.formatError(err)}`, 'error')
+    });
+  }
+
+  deleteShowFormat(id: number): void {
+    const item = this.showFormats.find(format => format.id === id);
+    if (!item) {
+      return;
+    }
+
+    if (!confirm(`Slet format "${item.name}"?`)) {
+      return;
+    }
+
+    this.api.deleteShowFormat(id).subscribe({
+      next: () => {
+        this.showFormats = this.showFormats.filter(format => format.id !== id);
+        if (this.editingShowFormatId === id) {
+          this.cancelEditShowFormat();
+        }
+        this.setStatus(`Format slettet: ${item.name}`, 'ok');
+      },
+      error: err => this.setStatus(`Kunne ikke slette format. ${this.formatError(err)}`, 'error')
+    });
+  }
+
   createMovie(): void {
     const payload = {
       title: this.movieForm.title.trim(),
@@ -718,6 +772,84 @@ export class App implements OnInit {
     });
   }
 
+  startEditMovie(movie: Movie): void {
+    this.editingMovieId = movie.id;
+    this.movieEditForm = {
+      id: movie.id,
+      title: movie.title,
+      description: movie.description ?? '',
+      durationMinutes: Number(movie.durationMinutes ?? 0),
+      ageLimit: movie.ageLimit ?? '',
+      releaseDate: this.toDateInput(movie.releaseDate ?? ''),
+      imageUrl: movie.imageUrl ?? ''
+    };
+  }
+
+  cancelEditMovie(): void {
+    this.editingMovieId = null;
+    this.movieEditForm = {
+      id: 0,
+      title: '',
+      description: '',
+      durationMinutes: 120,
+      ageLimit: '' as number | '',
+      releaseDate: '',
+      imageUrl: ''
+    };
+  }
+
+  updateMovie(): void {
+    if (!this.editingMovieId) {
+      return;
+    }
+
+    const payload: Movie = {
+      id: this.editingMovieId,
+      title: this.movieEditForm.title.trim(),
+      description: this.movieEditForm.description?.trim() || null,
+      durationMinutes: this.toNumber(this.movieEditForm.durationMinutes, 0),
+      ageLimit: this.toNullableNumber(this.movieEditForm.ageLimit),
+      releaseDate: this.movieEditForm.releaseDate || null,
+      imageUrl: this.movieEditForm.imageUrl?.trim() || null
+    };
+
+    if (!payload.title) {
+      this.setStatus('Film titel er påkrævet.', 'error');
+      return;
+    }
+
+    this.api.updateMovie(payload.id, payload).subscribe({
+      next: () => {
+        this.movies = this.movies.map(item => (item.id === payload.id ? payload : item));
+        this.setStatus(`Film opdateret: ${payload.title}`, 'ok');
+        this.cancelEditMovie();
+      },
+      error: err => this.setStatus(`Kunne ikke opdatere film. ${this.formatError(err)}`, 'error')
+    });
+  }
+
+  deleteMovie(id: number): void {
+    const item = this.movies.find(movie => movie.id === id);
+    if (!item) {
+      return;
+    }
+
+    if (!confirm(`Slet film "${item.title}"?`)) {
+      return;
+    }
+
+    this.api.deleteMovie(id).subscribe({
+      next: () => {
+        this.movies = this.movies.filter(movie => movie.id !== id);
+        if (this.editingMovieId === id) {
+          this.cancelEditMovie();
+        }
+        this.setStatus(`Film slettet: ${item.title}`, 'ok');
+      },
+      error: err => this.setStatus(`Kunne ikke slette film. ${this.formatError(err)}`, 'error')
+    });
+  }
+
   createAuditorium(): void {
     const payload = {
       name: this.auditoriumForm.name.trim(),
@@ -740,6 +872,70 @@ export class App implements OnInit {
     });
   }
 
+  startEditAuditorium(auditorium: Auditorium): void {
+    this.editingAuditoriumId = auditorium.id;
+    this.auditoriumEditForm = {
+      id: auditorium.id,
+      name: auditorium.name,
+      rows: Number(auditorium.rows ?? 0),
+      seatPerRow: Number(auditorium.seatPerRow ?? 0)
+    };
+  }
+
+  cancelEditAuditorium(): void {
+    this.editingAuditoriumId = null;
+    this.auditoriumEditForm = { id: 0, name: '', rows: 0, seatPerRow: 0 };
+  }
+
+  updateAuditorium(): void {
+    if (!this.editingAuditoriumId) {
+      return;
+    }
+
+    const payload: Auditorium = {
+      id: this.editingAuditoriumId,
+      name: this.auditoriumEditForm.name.trim(),
+      rows: this.toNumber(this.auditoriumEditForm.rows, 0),
+      seatPerRow: this.toNumber(this.auditoriumEditForm.seatPerRow, 0)
+    };
+
+    if (!payload.name) {
+      this.setStatus('Sal navn er påkrævet.', 'error');
+      return;
+    }
+
+    this.api.updateAuditorium(payload.id, payload).subscribe({
+      next: () => {
+        this.auditoriums = this.auditoriums.map(item => (item.id === payload.id ? payload : item));
+        this.setStatus(`Sal opdateret: ${payload.name}`, 'ok');
+        this.cancelEditAuditorium();
+      },
+      error: err => this.setStatus(`Kunne ikke opdatere sal. ${this.formatError(err)}`, 'error')
+    });
+  }
+
+  deleteAuditorium(id: number): void {
+    const item = this.auditoriums.find(auditorium => auditorium.id === id);
+    if (!item) {
+      return;
+    }
+
+    if (!confirm(`Slet sal "${item.name}"?`)) {
+      return;
+    }
+
+    this.api.deleteAuditorium(id).subscribe({
+      next: () => {
+        this.auditoriums = this.auditoriums.filter(auditorium => auditorium.id !== id);
+        if (this.editingAuditoriumId === id) {
+          this.cancelEditAuditorium();
+        }
+        this.setStatus(`Sal slettet: ${item.name}`, 'ok');
+      },
+      error: err => this.setStatus(`Kunne ikke slette sal. ${this.formatError(err)}`, 'error')
+    });
+  }
+
   createSeat(): void {
     const payload = {
       auditoriumId: this.toNumber(this.seatForm.auditoriumId, 0),
@@ -759,6 +955,78 @@ export class App implements OnInit {
         this.setStatus('Sæde oprettet.', 'ok');
       },
       error: err => this.setStatus(`Kunne ikke oprette sæde. ${this.formatError(err)}`, 'error')
+    });
+  }
+
+  startEditSeat(seat: Seat): void {
+    this.editingSeatId = seat.id;
+    this.seatEditForm = {
+      id: seat.id,
+      auditoriumId: seat.auditoriumId,
+      seatRow: Number(seat.seatRow ?? 0),
+      seatNumber: Number(seat.seatNumber ?? 0),
+      seatType: seat.seatType ?? 'Standard'
+    };
+  }
+
+  cancelEditSeat(): void {
+    this.editingSeatId = null;
+    this.seatEditForm = {
+      id: 0,
+      auditoriumId: 0,
+      seatRow: 1,
+      seatNumber: 1,
+      seatType: 'Standard'
+    };
+  }
+
+  updateSeat(): void {
+    if (!this.editingSeatId) {
+      return;
+    }
+
+    const payload: Seat = {
+      id: this.editingSeatId,
+      auditoriumId: this.toNumber(this.seatEditForm.auditoriumId, 0),
+      seatRow: this.toNumber(this.seatEditForm.seatRow, 0),
+      seatNumber: this.toNumber(this.seatEditForm.seatNumber, 0),
+      seatType: this.seatEditForm.seatType.trim() || 'Standard'
+    };
+
+    if (!payload.auditoriumId) {
+      this.setStatus('Vælg en sal til sædet.', 'error');
+      return;
+    }
+
+    this.api.updateSeat(payload.id, payload).subscribe({
+      next: () => {
+        this.seats = this.seats.map(item => (item.id === payload.id ? payload : item));
+        this.setStatus('Sæde opdateret.', 'ok');
+        this.cancelEditSeat();
+      },
+      error: err => this.setStatus(`Kunne ikke opdatere sæde. ${this.formatError(err)}`, 'error')
+    });
+  }
+
+  deleteSeat(id: number): void {
+    const item = this.seats.find(seat => seat.id === id);
+    if (!item) {
+      return;
+    }
+
+    if (!confirm(`Slet sæde R${item.seatRow} S${item.seatNumber} (sal ${item.auditoriumId})?`)) {
+      return;
+    }
+
+    this.api.deleteSeat(id).subscribe({
+      next: () => {
+        this.seats = this.seats.filter(seat => seat.id !== id);
+        if (this.editingSeatId === id) {
+          this.cancelEditSeat();
+        }
+        this.setStatus('Sæde slettet.', 'ok');
+      },
+      error: err => this.setStatus(`Kunne ikke slette sæde. ${this.formatError(err)}`, 'error')
     });
   }
 
@@ -792,6 +1060,81 @@ export class App implements OnInit {
     });
   }
 
+  startEditScreening(screening: Screening): void {
+    this.editingScreeningId = screening.id;
+    this.screeningEditForm = {
+      id: screening.id,
+      movieId: screening.movieId,
+      auditoriumId: screening.auditoriumId,
+      showFormatId: screening.showFormatId,
+      startsAt: this.toDateTimeLocal(screening.startsAt),
+      baseTicketPrice: Number(screening.baseTicketPrice ?? 0)
+    };
+  }
+
+  cancelEditScreening(): void {
+    this.editingScreeningId = null;
+    this.screeningEditForm = {
+      id: 0,
+      movieId: 0,
+      auditoriumId: 0,
+      showFormatId: 0,
+      startsAt: '',
+      baseTicketPrice: 120
+    };
+  }
+
+  updateScreening(): void {
+    if (!this.editingScreeningId) {
+      return;
+    }
+
+    const payload: Screening = {
+      id: this.editingScreeningId,
+      movieId: this.toNumber(this.screeningEditForm.movieId, 0),
+      auditoriumId: this.toNumber(this.screeningEditForm.auditoriumId, 0),
+      showFormatId: this.toNumber(this.screeningEditForm.showFormatId, 0),
+      startsAt: this.screeningEditForm.startsAt,
+      baseTicketPrice: this.toNumber(this.screeningEditForm.baseTicketPrice, 0)
+    };
+
+    if (!payload.movieId || !payload.auditoriumId || !payload.showFormatId || !payload.startsAt) {
+      this.setStatus('Udfyld film, sal, format og tidspunkt.', 'error');
+      return;
+    }
+
+    this.api.updateScreening(payload.id, payload).subscribe({
+      next: () => {
+        this.screenings = this.screenings.map(item => (item.id === payload.id ? payload : item));
+        this.setStatus('Forestilling opdateret.', 'ok');
+        this.cancelEditScreening();
+      },
+      error: err => this.setStatus(`Kunne ikke opdatere forestilling. ${this.formatError(err)}`, 'error')
+    });
+  }
+
+  deleteScreening(id: number): void {
+    const item = this.screenings.find(screening => screening.id === id);
+    if (!item) {
+      return;
+    }
+
+    if (!confirm(`Slet forestilling #${item.id}?`)) {
+      return;
+    }
+
+    this.api.deleteScreening(id).subscribe({
+      next: () => {
+        this.screenings = this.screenings.filter(screening => screening.id !== id);
+        if (this.editingScreeningId === id) {
+          this.cancelEditScreening();
+        }
+        this.setStatus('Forestilling slettet.', 'ok');
+      },
+      error: err => this.setStatus(`Kunne ikke slette forestilling. ${this.formatError(err)}`, 'error')
+    });
+  }
+
   createProduct(): void {
     const payload = {
       name: this.productForm.name.trim(),
@@ -821,6 +1164,74 @@ export class App implements OnInit {
     });
   }
 
+  startEditProduct(product: Product): void {
+    this.editingProductId = product.id;
+    this.productEditForm = {
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      price: Number(product.price ?? 0),
+      isActive: !!product.isActive
+    };
+  }
+
+  cancelEditProduct(): void {
+    this.editingProductId = null;
+    this.productEditForm = { id: 0, name: '', category: 'Drink', price: 0, isActive: true };
+  }
+
+  updateProduct(): void {
+    if (!this.editingProductId) {
+      return;
+    }
+
+    const payload: Product = {
+      id: this.editingProductId,
+      name: this.productEditForm.name.trim(),
+      category: this.productEditForm.category.trim(),
+      price: this.toNumber(this.productEditForm.price, 0),
+      isActive: this.productEditForm.isActive
+    };
+
+    if (!payload.name) {
+      this.setStatus('Produkt navn er påkrævet.', 'error');
+      return;
+    }
+
+    this.api.updateProduct(payload.id, payload).subscribe({
+      next: () => {
+        this.products = this.products.map(item => (item.id === payload.id ? payload : item));
+        this.productQuantities[payload.id] = this.productQuantities[payload.id] ?? 0;
+        this.setStatus(`Produkt opdateret: ${payload.name}`, 'ok');
+        this.cancelEditProduct();
+      },
+      error: err => this.setStatus(`Kunne ikke opdatere produkt. ${this.formatError(err)}`, 'error')
+    });
+  }
+
+  deleteProduct(id: number): void {
+    const item = this.products.find(product => product.id === id);
+    if (!item) {
+      return;
+    }
+
+    if (!confirm(`Slet produkt "${item.name}"?`)) {
+      return;
+    }
+
+    this.api.deleteProduct(id).subscribe({
+      next: () => {
+        this.products = this.products.filter(product => product.id !== id);
+        delete this.productQuantities[id];
+        if (this.editingProductId === id) {
+          this.cancelEditProduct();
+        }
+        this.setStatus(`Produkt slettet: ${item.name}`, 'ok');
+      },
+      error: err => this.setStatus(`Kunne ikke slette produkt. ${this.formatError(err)}`, 'error')
+    });
+  }
+
   private buildSeatMap(): void {
     const rows = Array.from(new Set(this.availableSeats.map(seat => seat.seatRow))).sort((a, b) => a - b);
     const byRow: Record<number, Seat[]> = {};
@@ -833,11 +1244,49 @@ export class App implements OnInit {
     this.seatsByRow = byRow;
   }
 
+  private toDateInput(value: string): string {
+    if (!value) {
+      return '';
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private toDateTimeLocal(value: string): string {
+    if (!value) {
+      return '';
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+      return value;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
   private resetCheckout(): void {
     this.bookingResult = null;
-    this.paymentStatus = 'idle';
-    this.paymentError = '';
-    this.paymentReference = '';
   }
 
   private getQuantity(productId: number): number {
